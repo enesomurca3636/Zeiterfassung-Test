@@ -149,8 +149,11 @@
 </div>
 
 
-<script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+const SUPABASE_URL = "https://wbksahahqwtjgqdabujf.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_3Jqwhff4zKvXscB5cCnf4w_sYaQG9Ne";
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = "";
 let currentPin = "";
 
@@ -207,7 +210,26 @@ function login() {
 }
 
 
-function saveAction(action) {
+async function saveAction(action) {
+
+  const { error } = await db
+    .from("zeiterfassung")
+    .insert([
+      {
+        name: currentUser,
+        pin: currentPin,
+        aktion: action
+      }
+    ]);
+
+  if (error) {
+    alert("Fehler beim Speichern: " + error.message);
+    return;
+  }
+
+  document.getElementById("status").innerText =
+    action + " – " + new Date().toLocaleTimeString("de-DE");
+}
 
   const entries =
     JSON.parse(localStorage.getItem("timeEntries") || "[]");
