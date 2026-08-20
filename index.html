@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zeiterfassung</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f3f3f3;
+    }
+
+    .box {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    input, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 17px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .start {
+      background: #28a745;
+      color: white;
+    }
+
+    .pause {
+      background: #ffc107;
+    }
+
+    .stop {
+      background: #dc3545;
+      color: white;
+    }
+
+    .logout {
+      background: #555;
+      color: white;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #eee;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .entry {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="box">
+
+  <div id="login">
+
+    <h1>Zeiterfassung</h1>
+
+    <input id="name" placeholder="Name">
+
+    <input id="pin" type="password" placeholder="PIN">
+
+    <button onclick="login()">Anmelden</button>
+
+    <p style="text-align:center;">
+      Mitarbeiter-PIN: 1 bis 5<br>
+      Chef-PIN: 0
+    </p>
+
+  </div>
+
+
+  <div id="employee" class="hidden">
+
+    <h1 id="welcome"></h1>
+
+    <button class="start" onclick="startWork()">
+      Arbeitsbeginn
+    </button>
+
+    <button class="pause" onclick="pauseWork()">
+      Pause
+    </button>
+
+    <button class="start" onclick="resumeWork()">
+      Pause beenden
+    </button>
+
+    <button class="stop" onclick="stopWork()">
+      Feierabend
+    </button>
+
+    <div id="status">
+      Noch keine Aktion
+    </div>
+
+    <button class="logout" onclick="logout()">
+      Abmelden
+    </button>
+
+  </div>
+
+
+  <div id="admin" class="hidden">
+
+    <h1>Chef-Ansicht</h1>
+
+    <div id="entries"></div>
+
+    <button onclick="showEntries()">
+      Aktualisieren
+    </button>
+
+    <button class="logout" onclick="logout()">
+      Abmelden
+    </button>
+
+  </div>
+
+</div>
+
+
+<script>
+
+let currentUser = "";
+let currentPin = "";
+
+function login() {
+
+  const name =
+    document.getElementById("name").value.trim();
+
+  const pin =
+    document.getElementById("pin").value.trim();
+
+  if (pin === "0") {
+
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("admin").classList.remove("hidden");
+
+    showEntries();
+
+    return;
+  }
+
+  if (!["1","2","3","4","5"].includes(pin)) {
+
+    alert("PIN ist nicht gültig.");
+    return;
+  }
+
+  if (name === "") {
+
+    alert("Bitte Name eingeben.");
+    return;
+  }
+
+  const savedName =
+    localStorage.getItem("pin_" + pin);
+
+  if (savedName && savedName !== name) {
+
+    alert("Diese PIN ist bereits vergeben.");
+    return;
+  }
+
+  localStorage.setItem("pin_" + pin, name);
+
+  currentUser = name;
+  currentPin = pin;
+
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("employee").classList.remove("hidden");
+
+  document.getElementById("welcome").innerText =
+    "Hallo " + name;
+
+}
+
+
+function saveAction(action) {
+
+  const entries =
+    JSON.parse(localStorage.getItem("timeEntries") || "[]");
+
+  entries.push({
+
+    name: currentUser,
+    pin: currentPin,
+    action: action,
+    time: new Date().toLocaleString("de-DE")
+
+  });
+
+  localStorage.setItem(
+    "timeEntries",
+    JSON.stringify(entries)
+  );
+
+  document.getElementById("status").innerText =
+    action + " – " + new Date().toLocaleTimeString("de-DE");
+
+}
+
+
+function startWork() {
+  saveAction("Arbeitsbeginn");
+}
+
+
+function pauseWork() {
+  saveAction("Pause");
+}
+
+
+function resumeWork() {
+  saveAction("Pause beendet");
+}
+
+
+function stopWork() {
+  saveAction("Feierabend");
+}
+
+
+function showEntries() {
+
+  const entries =
+    JSON.parse(localStorage.getItem("timeEntries") || "[]");
+
+  const container =
+    document.getElementById("entries");
+
+  container.innerHTML = "";
+
+  if (entries.length === 0) {
+
+    container.innerHTML =
+      "<p>Noch keine Zeiteinträge.</p>";
+
+    return;
+  }
+
+  entries
+    .slice()
+    .reverse()
+    .forEach(entry => {
+
+      const div =
+        document.createElement("div");
+
+      div.className = "entry";
+
+      div.innerHTML =
+        "<strong>" + entry.name + "</strong><br>" +
+        entry.action + "<br>" +
+        entry.time;
+
+      container.appendChild(div);
+
+    });
+
+}
+
+
+function logout() {
+
+  currentUser = "";
+  currentPin = "";
+
+  document.getElementById("employee").classList.add("hidden");
+  document.getElementById("admin").classList.add("hidden");
+  document.getElementById("login").classList.remove("hidden");
+
+  document.getElementById("name").value = "";
+  document.getElementById("pin").value = "";
+
+}
+
+</script>
+
+</body>
+</html>
